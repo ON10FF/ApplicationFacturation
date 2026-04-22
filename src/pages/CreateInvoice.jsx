@@ -9,7 +9,7 @@ export default function CreateInvoice() {
   const { user } = useAuth();
   const [clients, setClients] = useState([]);
   const [selectedClient, setSelectedClient] = useState('');
-  const [lines, setLines] = useState([{ product_name: '', quantity: 1, price_ht: 0 }]);
+  const [lines, setLines] = useState([{ product_name: '', quantity: 1, price_ttc: 0 }]);
   const[isPaid, setIsPaid] = useState(false);
   const [signature, setSignature] = useState(null);
   const navigate = useNavigate();
@@ -25,10 +25,10 @@ export default function CreateInvoice() {
   };
 
   const calculateTotals = () => {
-    let ht = 0;
-    lines.forEach(l => ht += l.quantity * l.price_ht);
-    const tva = ht * 0.18; // 18% TVA Sénégal
-    return { ht, tva, ttc: ht + tva };
+    // Le prix unitaire est TTC : la taxe est déjà incluse, on ne l'ajoute pas.
+    let ttc = 0;
+    lines.forEach(l => ttc += l.quantity * l.price_ttc);
+    return { ht: ttc, tva: 0, ttc };
   };
 
   const handleIssue = async () => {
@@ -43,8 +43,9 @@ export default function CreateInvoice() {
 
     const formattedLines = lines.map(l => ({
       ...l,
-      total_ht: l.quantity * l.price_ht,
-      total_ttc: (l.quantity * l.price_ht) * 1.18
+      price_ht: l.price_ttc,   // alias pour compatibilité avec InvoicePDF
+      total_ht: l.quantity * l.price_ttc,
+      total_ttc: l.quantity * l.price_ttc  // TTC = HT car la taxe est incluse
     }));
 
     const invoiceDraftData = {
@@ -109,17 +110,16 @@ export default function CreateInvoice() {
               value={line.product_name} onChange={e => handleLineChange(index, 'product_name', e.target.value)} />
             <input type="number" placeholder="Qté" className="border p-2 w-20 rounded"
               value={line.quantity} onChange={e => handleLineChange(index, 'quantity', Number(e.target.value))} />
-            <input type="number" placeholder="PU HT (FCFA)" className="border p-2 w-32 rounded"
-              value={line.price_ht} onChange={e => handleLineChange(index, 'price_ht', Number(e.target.value))} />
+            <input type="number" placeholder="PU TTC (FCFA)" className="border p-2 w-32 rounded"
+              value={line.price_ttc} onChange={e => handleLineChange(index, 'price_ttc', Number(e.target.value))} />
           </div>
         ))}
-        <button onClick={() => setLines([...lines, { product_name: '', quantity: 1, price_ht: 0 }])} className="text-blue-500 text-sm mt-2">+ Ajouter une ligne</button>
+        <button onClick={() => setLines([...lines, { product_name: '', quantity: 1, price_ttc: 0 }])} className="text-blue-500 text-sm mt-2">+ Ajouter une ligne</button>
       </div>
 
       <div className="bg-gray-50 p-4 rounded mb-6 text-right">
-        <p>Total HT: {calculateTotals().ht} FCFA</p>
-        <p>TVA (18%): {calculateTotals().tva} FCFA</p>
-        <p className="text-xl font-bold text-blue-700">Total TTC: {calculateTotals().ttc} FCFA</p>
+        <p className="text-sm text-gray-500 italic">Prix unitaire = TTC (taxe déjà incluse)</p>
+        <p className="text-xl font-bold text-blue-700">Total TTC : {calculateTotals().ttc} FCFA</p>
       </div>
 
       <div className="grid grid-cols-2 gap-6 mb-6">

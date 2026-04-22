@@ -13,7 +13,6 @@ const styles = StyleSheet.create({
   tableCol: { padding: 5, borderRightWidth: 1, borderRightColor: '#e5e7eb' },
   footerSection: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 40 },
   stampBox: { width: 120, height: 120, border: '1px dashed #ccc', justifyContent: 'center', alignItems: 'center' },
-  signatureBox: { width: 150, height: 60 },
 });
 
 export default function InvoicePDF({ data }) {
@@ -61,7 +60,7 @@ export default function InvoicePDF({ data }) {
           <View style={[styles.tableRow, styles.tableHeader]}>
             <Text style={[styles.tableCol, { width: '40%' }]}>Désignation</Text>
             <Text style={[styles.tableCol, { width: '15%' }]}>Qté</Text>
-            <Text style={[styles.tableCol, { width: '20%' }]}>PU HT</Text>
+            <Text style={[styles.tableCol, { width: '20%' }]}>PU TTC</Text>
             <Text style={[styles.tableCol, { width: '25%' }]}>Total TTC</Text>
           </View>
           {data.lines.map((line, i) => (
@@ -76,13 +75,10 @@ export default function InvoicePDF({ data }) {
 
         {/* Totaux */}
         <View style={{ marginTop: 20, alignItems: 'flex-end' }}>
-          <Text>Total HT : {data.total_ht} FCFA</Text>
-          <Text>TVA (18%) : {data.total_vat} FCFA</Text>
           <Text style={{ fontSize: 14, fontWeight: 'bold' }}>Total TTC : {data.total_ttc} FCFA</Text>
           {data.is_paid && <Text style={{ color: 'green' }}>Montant payé : {data.paid_amount} FCFA</Text>}
         </View>
 
-        {/* Cachet et Signature */}
         <View style={styles.footerSection}>
           <View>
             <Text style={{ marginBottom: 10 }}>Cachet de l'entreprise :</Text>
@@ -93,17 +89,6 @@ export default function InvoicePDF({ data }) {
                 <Text style={{ color: 'blue', textAlign: 'center' }}>{data.company.name}</Text>
                 <Text style={{ fontSize: 8, color: 'blue' }}>Cachet Numérique</Text>
               </View>
-            )}
-          </View>
-          
-          <View>
-            <Text style={{ marginBottom: 10 }}>Signature :</Text>
-            {data.signature_data_url ? (
-              <Image src={data.signature_data_url} style={styles.signatureBox} />
-            ) : data.company.signature_image_url ? (
-               <Image src={data.company.signature_image_url} style={styles.signatureBox} />
-            ) : (
-              <Text style={{ fontStyle: 'italic', color: '#6b7280' }}>Signature électronique (Lu et approuvé)</Text>
             )}
           </View>
         </View>
