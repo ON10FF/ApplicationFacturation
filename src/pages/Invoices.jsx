@@ -4,75 +4,164 @@ import { pdf } from '@react-pdf/renderer';
 import InvoiceTemplate from '../components/InvoicePDF';
 import { calculateHash } from '../lib/utils';
 import { Link } from 'react-router-dom';
-import { Download, CheckCircle, Clock } from 'lucide-react';
+import { Download, CheckCircle, Clock, Trash2, AlertCircle } from 'lucide-react';
+import { useCompany } from '../contexts/CompanyContext';
 
 export default function Invoices() {
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { activeCompany } = useCompany();
+  const [selectedIds, setSelectedIds] = useState([]);
 
   useEffect(() => {
-    fetchInvoices();
-  }, []);
+    if (activeCompany) {
+      fetchInvoices();
+    } else {
+      setInvoices([]);
+      setLoading(false);
+    }
+  }, [activeCompany]);
 
   const fetchInvoices = async () => {
+    setLoading(true);
     const { data, error } = await supabase
       .from('invoices')
       .select('*, clients(name)')
+      .eq('company_id', activeCompany.id)
       .order('created_at', { ascending: false });
     
     if (data) setInvoices(data);
     setLoading(false);
   };
 
-  if (loading) return <div>Chargement...</div>;
+  const handleDelete = async (id) => {
+    if (!window.confirm("Êtes-vous sûr de vouloir supprimer cette facture ?")) return;
+    
+    const { error } = await supabase.from('invoices').delete().eq('id', id);
+    if (error) {
+      alert("Erreur lors de la suppression : " + error.message);
+    } else {
+      setInvoices(invoices.filter(inv => inv.id !== id));
+      setSelectedIds(selectedIds.filter(sid => sid !== id));
+    }
+  };
+
+  const handleDeleteSelected = async () => {
+    if (!window.confirm(`Êtes-vous sûr de vouloir supprimer les ${selectedIds.length} factures sélectionnées ?`)) return;
+
+    const { error } = await supabase.from('invoices').delete().in('id', selectedIds);
+    if (error) {
+      alert("Erreur lors de la suppression groupée : " + error.message);
+    } else {
+      setInvoices(invoices.filter(inv => !selectedIds.includes(inv.id)));
+      setSelectedIds([]);
+    }
+  };
+
+  const toggleSelect = (id) => {
+    if (selectedIds.includes(id)) {
+      setSelectedIds(selectedIds.filter(sid => sid !== id));
+    } else {
+      setSelectedIds([...selectedIds, id]);
+    }
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.length === invoices.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(invoices.map(inv => inv.id));
+    }
+  };
+
+  if (!activeCompany) {
+    return (
+      <div className="bg-white p-12 shadow rounded text-center">
+        <AlertCircle className="w-12 h-12 text-amber-500 mx-auto mb-4" />
+        <h2 className="text-xl font-bold mb-2">Aucune entreprise sélectionnée</h2>
+        <p className="text-gray-600 mb-6">Veuillez sélectionner une entreprise dans l'onglet "Mes Entreprises" pour voir ses factures.</p>
+        <Link to="/companies" className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition">
+          Gérer mes entreprises
+        </Link>
+      </div>
+    );
+  }
+
+  if (loading) return <div className="p-6 text-center">Chargement des factures...</div>;
 
   return (
     <div className="bg-white p-6 shadow rounded">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold">Mes Factures</h2>
-        <Link to="/invoices/create" className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition">
-          + Nouvelle facture
-        </Link>
+        <div>
+          <h2 className="text-2xl font-bold">Factures : {activeCompany.name}</h2>
+          <p className="text-sm text-gray-500">{invoices.length} facture(s) trouvée(s)</p>
+        </div>
+        <div className="flex space-x-3">
+          {selectedIds.length > 0 && (
+            <button onClick={handleDeleteSelected} className="bg-red-50 text-red-600 px-4 py-2 rounded border border-red-200 hover:bg-red-100 transition flex items-center">
+              <Trash2 className="w-4 h-4 mr-2" /> Supprimer ({selectedIds.length})
+            </button>
+          )}
+          <Link to="/invoices/create" className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition">
+            + Nouvelle facture
+          </Link>
+        </div>
       </div>
 
       <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse">
           <thead>
-            <tr className="bg-gray-100 text-gray-700">
+            <tr className="bg-gray-50 text-gray-700">
+              <th className="p-3 border-b w-10">
+                <input type="checkbox" checked={selectedIds.length === invoices.length && invoices.length > 0} onChange={toggleSelectAll} className="rounded" />
+              </th>
               <th className="p-3 border-b">N° Facture</th>
               <th className="p-3 border-b">Client</th>
               <th className="p-3 border-b">Date</th>
               <th className="p-3 border-b">Montant (TTC)</th>
               <th className="p-3 border-b">Statut</th>
-              <th className="p-3 border-b">Actions</th>
+              <th className="p-3 border-b text-right">Actions</th>
             </tr>
           </thead>
           <tbody>
             {invoices.map((inv) => (
-              <tr key={inv.id} className="hover:bg-gray-50 border-b">
+              <tr key={inv.id} className={`hover:bg-gray-50 border-b ${selectedIds.includes(inv.id) ? 'bg-blue-50/30' : ''}`}>
+                <td className="p-3">
+                  <input type="checkbox" checked={selectedIds.includes(inv.id)} onChange={() => toggleSelect(inv.id)} className="rounded" />
+                </td>
                 <td className="p-3 font-medium text-gray-800">{inv.number || 'Brouillon'}</td>
                 <td className="p-3">{inv.clients?.name || 'Inconnu'}</td>
                 <td className="p-3">{new Date(inv.created_at).toLocaleDateString()}</td>
                 <td className="p-3">{inv.total_ttc} FCFA</td>
                 <td className="p-3">
                   {inv.status === 'issued' ? (
-                    <span className="flex items-center text-green-600"><CheckCircle className="w-4 h-4 mr-1"/> Émise</span>
+                    <span className="inline-flex items-center text-xs font-medium text-green-700 bg-green-100 px-2.5 py-0.5 rounded-full">
+                      <CheckCircle className="w-3 h-3 mr-1"/> Émise
+                    </span>
                   ) : (
-                    <span className="flex items-center text-yellow-600"><Clock className="w-4 h-4 mr-1"/> Brouillon</span>
+                    <span className="inline-flex items-center text-xs font-medium text-amber-700 bg-amber-100 px-2.5 py-0.5 rounded-full">
+                      <Clock className="w-3 h-3 mr-1"/> Brouillon
+                    </span>
                   )}
                 </td>
-                <td className="p-3 flex space-x-3">
+                <td className="p-3 flex justify-end space-x-2">
                   {inv.pdf_url && (
-                    <a href={inv.pdf_url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-700" title="Télécharger">
+                    <a href={inv.pdf_url} target="_blank" rel="noopener noreferrer" className="p-2 text-blue-500 hover:bg-blue-50 rounded transition" title="Télécharger">
                       <Download className="w-5 h-5" />
                     </a>
                   )}
+                  <button onClick={() => handleDelete(inv.id)} className="p-2 text-red-500 hover:bg-red-50 rounded transition" title="Supprimer">
+                    <Trash2 className="w-5 h-5" />
+                  </button>
                 </td>
               </tr>
             ))}
             {invoices.length === 0 && (
               <tr>
-                <td colSpan="6" className="p-6 text-center text-gray-500">Aucune facture trouvée.</td>
+                <td colSpan="7" className="p-12 text-center text-gray-500">
+                  <p>Aucune facture trouvée pour cette entreprise.</p>
+                  <Link to="/invoices/create" className="text-blue-600 hover:underline mt-2 inline-block">Créer votre première facture</Link>
+                </td>
               </tr>
             )}
           </tbody>

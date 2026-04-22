@@ -9,6 +9,9 @@ import Invoices from './pages/Invoices';
 import CreateInvoice from './pages/CreateInvoice';
 import VerifyInvoice from './pages/VerifyInvoice';
 
+import { CompanyProvider } from './contexts/CompanyContext';
+import Companies from './pages/Companies';
+
 const ProtectedRoute = ({ children }) => {
   const { user } = useAuth();
   if (!user) return <Navigate to="/login" />;
@@ -24,6 +27,7 @@ function AppRoutes() {
       {/* Routes protégées */}
       <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
       <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+      <Route path="/companies" element={<ProtectedRoute><Companies /></ProtectedRoute>} />
       <Route path="/clients" element={<ProtectedRoute><Clients /></ProtectedRoute>} />
       <Route path="/invoices" element={<ProtectedRoute><Invoices /></ProtectedRoute>} />
       <Route path="/invoices/create" element={<ProtectedRoute><CreateInvoice /></ProtectedRoute>} />
@@ -34,9 +38,11 @@ function AppRoutes() {
 export default function App() {
   return (
     <AuthProvider>
-      <Router>
-        <AppRoutes />
-      </Router>
+      <CompanyProvider>
+        <Router>
+          <AppRoutes />
+        </Router>
+      </CompanyProvider>
     </AuthProvider>
   );
 }

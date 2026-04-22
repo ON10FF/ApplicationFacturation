@@ -1,12 +1,15 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Users, FileText, Settings as SettingsIcon } from 'lucide-react';
+import { Home, Users, FileText, Settings as SettingsIcon, Building2 } from 'lucide-react';
+import { useCompany } from '../contexts/CompanyContext';
 
 export default function Sidebar() {
   const location = useLocation();
+  const { activeCompany } = useCompany();
   const menus =[
     { name: 'Tableau de bord', path: '/', icon: Home },
     { name: 'Factures', path: '/invoices', icon: FileText },
     { name: 'Clients', path: '/clients', icon: Users },
+    { name: 'Mes Entreprises', path: '/companies', icon: Building2 },
     { name: 'Paramètres', path: '/settings', icon: SettingsIcon },
   ];
 
@@ -26,6 +29,18 @@ export default function Sidebar() {
           );
         })}
       </nav>
+
+      {activeCompany && (
+        <div className="mt-auto pt-4 border-t border-gray-800">
+          <div className="flex items-center p-3 bg-gray-800 rounded-lg">
+            <Building2 className="w-4 h-4 text-blue-400 mr-2" />
+            <div className="overflow-hidden">
+              <p className="text-xs text-gray-400 uppercase font-bold">Entreprise active</p>
+              <p className="text-sm font-medium truncate text-white">{activeCompany.name}</p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

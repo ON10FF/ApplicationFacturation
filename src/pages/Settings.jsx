@@ -1,127 +1,74 @@
-import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
-import { useAuth } from '../contexts/AuthContext';
+import { Link } from 'react-router-dom';
+import { useCompany } from '../contexts/CompanyContext';
+import { Building2, ArrowRight, Settings as SettingsIcon } from 'lucide-react';
 
 export default function Settings() {
-  const { user } = useAuth();
-  const [form, setForm] = useState({ name: '', ninea: '', rccm: '', address: '', phone: '', email: '', stamp_image_url: '' });
-  const [loading, setLoading] = useState(false);
-
-  const handleImageUpload = async (e, field) => {
-    const file = e.target.files[0];
-    if (file) {
-      setLoading(true);
-      const fileExt = file.name.split('.').pop();
-      // On utilise le bucket 'factures' que nous avons déjà créé, dans un dossier 'stamps'
-      const fileName = `stamps/${user.id}_${Date.now()}.${fileExt}`;
-      
-      const { error: uploadError } = await supabase.storage
-        .from('factures')
-        .upload(fileName, file, { upsert: true });
-        
-      if (uploadError) {
-        console.error('Erreur upload image:', uploadError);
-        alert('Erreur lors de l\'envoi de l\'image : ' + uploadError.message);
-        setLoading(false);
-        return;
-      }
-      
-      const { data } = supabase.storage.from('factures').getPublicUrl(fileName);
-      setForm({ ...form, [field]: data.publicUrl });
-      setLoading(false);
-    }
-  };
-
-  const fetchCompany = async () => {
-    if (!user) return;
-    const { data, error } = await supabase.from('companies').select('*').eq('user_id', user.id).maybeSingle();
-    if (error && error.code !== 'PGRST116') {
-      console.error('Erreur lors de la récupération:', error);
-    }
-    if (data) setForm({ ...form, ...data });
-  };
-
-  useEffect(() => {
-    if (user) {
-      fetchCompany();
-    }
-  }, [user]);
-
-  const handleSave = async (e) => {
-    e.preventDefault();
-    if (!user) return;
-    setLoading(true);
-    
-    const { data: existing, error: fetchError } = await supabase.from('companies').select('id').eq('user_id', user.id).maybeSingle();
-    
-    if (fetchError && fetchError.code !== 'PGRST116') {
-      console.error('Erreur de vérification:', fetchError);
-      alert('Erreur: ' + fetchError.message);
-      setLoading(false);
-      return;
-    }
-    
-    let actionError;
-    if (existing) {
-      const { error } = await supabase.from('companies').update(form).eq('id', existing.id);
-      actionError = error;
-    } else {
-      const { error } = await supabase.from('companies').insert([{ ...form, user_id: user.id }]);
-      actionError = error;
-    }
-    
-    setLoading(false);
-    
-    if (actionError) {
-      console.error('Erreur de sauvegarde:', actionError);
-      alert('Erreur lors de la sauvegarde: ' + actionError.message);
-    } else {
-      alert('Paramètres sauvegardés !');
-    }
-  };
+  const { activeCompany, companies } = useCompany();
 
   return (
-    <div className="max-w-2xl bg-white p-6 rounded-lg shadow">
-      <h2 className="text-2xl font-bold mb-6">Profil de l'entreprise</h2>
-      <form onSubmit={handleSave} className="grid grid-cols-2 gap-4">
-        <div className="col-span-2">
-          <label className="block text-sm font-medium mb-1">Raison Sociale *</label>
-          <input type="text" required className="w-full p-2 border rounded" value={form.name || ''} onChange={e => setForm({...form, name: e.target.value})} />
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-1">NINEA *</label>
-          <input type="text" required className="w-full p-2 border rounded" value={form.ninea || ''} onChange={e => setForm({...form, ninea: e.target.value})} />
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-1">RCCM</label>
-          <input type="text" className="w-full p-2 border rounded" value={form.rccm || ''} onChange={e => setForm({...form, rccm: e.target.value})} />
-        </div>
-        <div className="col-span-2">
-          <label className="block text-sm font-medium mb-1">Adresse *</label>
-          <input type="text" required className="w-full p-2 border rounded" value={form.address || ''} onChange={e => setForm({...form, address: e.target.value})} />
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-1">Téléphone</label>
-          <input type="text" className="w-full p-2 border rounded" value={form.phone || ''} onChange={e => setForm({...form, phone: e.target.value})} />
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-1">Email</label>
-          <input type="email" className="w-full p-2 border rounded" value={form.email || ''} onChange={e => setForm({...form, email: e.target.value})} />
-        </div>
-        <div className="col-span-2 mt-4">
-          <label className="block text-sm font-medium mb-1">Cachet de l'entreprise (Image/PNG/JPG)</label>
-          <div className="flex items-center space-x-4">
-            <input type="file" accept="image/*" onChange={e => handleImageUpload(e, 'stamp_image_url')} className="w-full p-2 border rounded" />
-            {form.stamp_image_url && (
-              <img src={form.stamp_image_url} alt="Cachet" className="h-16 w-16 object-contain border p-1 rounded" />
-            )}
+    <div className="max-w-2xl mx-auto">
+      <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
+        <div className="flex items-center gap-4 mb-8">
+          <div className="bg-blue-100 p-3 rounded-xl">
+            <SettingsIcon className="w-8 h-8 text-blue-600" />
           </div>
-          <p className="text-xs text-gray-500 mt-1">Le cachet sera automatiquement apposé sur vos factures.</p>
+          <div>
+            <h2 className="text-2xl font-bold text-gray-800">Paramètres</h2>
+            <p className="text-gray-500">Gérez votre compte et vos préférences.</p>
+          </div>
         </div>
-        <button type="submit" disabled={loading} className="col-span-2 bg-blue-600 text-white p-2 rounded hover:bg-blue-700 mt-4">
-          {loading ? 'Enregistrement...' : 'Sauvegarder les paramètres'}
-        </button>
-      </form>
+
+        <div className="space-y-6">
+          <div className="p-6 bg-gray-50 rounded-2xl border border-gray-100">
+            <h3 className="text-lg font-bold text-gray-800 mb-2 flex items-center">
+              <Building2 className="w-5 h-5 mr-2 text-gray-400" />
+              Gestion des entreprises
+            </h3>
+            <p className="text-gray-600 text-sm mb-6">
+              Vous avez actuellement <strong>{companies.length}</strong> entreprise(s) enregistrée(s). 
+              La gestion des profils (logo, cachet, adresse) se fait désormais dans l'onglet dédié.
+            </p>
+
+            {activeCompany ? (
+              <div className="bg-white p-4 rounded-xl border border-gray-200 mb-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  {activeCompany.logo_url ? (
+                    <img src={activeCompany.logo_url} alt="Logo" className="w-10 h-10 object-contain border rounded p-1" />
+                  ) : (
+                    <div className="w-10 h-10 bg-blue-50 rounded-full flex items-center justify-center text-blue-500 font-bold">
+                      {activeCompany.name.charAt(0)}
+                    </div>
+                  )}
+                  <div>
+                    <p className="text-sm font-bold text-gray-800">{activeCompany.name}</p>
+                    <p className="text-xs text-gray-500">Entreprise actuellement active</p>
+                  </div>
+                </div>
+                <Link to="/companies" className="text-blue-600 hover:text-blue-700 p-2">
+                  <ArrowRight className="w-5 h-5" />
+                </Link>
+              </div>
+            ) : (
+              <div className="bg-amber-50 text-amber-700 p-4 rounded-xl border border-amber-100 text-sm mb-4">
+                Aucune entreprise active. Veuillez en sélectionner une.
+              </div>
+            )}
+
+            <Link 
+              to="/companies" 
+              className="w-full flex items-center justify-center bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-xl transition shadow-lg shadow-blue-100"
+            >
+              Aller à la gestion des entreprises
+            </Link>
+          </div>
+
+          <div className="pt-6 border-t border-gray-100">
+            <p className="text-xs text-gray-400 text-center">
+              Version 1.2.0 • FacturePro SN
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

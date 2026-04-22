@@ -4,9 +4,12 @@ import { useNavigate } from 'react-router-dom';
 import SignaturePad from '../components/SignaturePad';
 import { issueInvoice } from './Invoices';
 import { useAuth } from '../contexts/AuthContext';
+import { useCompany } from '../contexts/CompanyContext';
+import { Building2, AlertTriangle } from 'lucide-react';
 
 export default function CreateInvoice() {
   const { user } = useAuth();
+  const { activeCompany } = useCompany();
   const [clients, setClients] = useState([]);
   const [selectedClient, setSelectedClient] = useState('');
   const [lines, setLines] = useState([{ product_name: '', quantity: 1, price_ttc: 0 }]);
@@ -44,9 +47,8 @@ export default function CreateInvoice() {
       const totals = calculateTotals();
       const client = clients.find(c => c.id === selectedClient);
 
-      const { data: companyData } = await supabase.from('companies').select('*').eq('user_id', user.id).single();
-      if (!companyData) {
-        alert('Veuillez configurer votre entreprise dans les paramètres avant de générer une facture.');
+      if (!activeCompany) {
+        alert("Veuillez sélectionner une entreprise active avant de générer une facture.");
         return;
       }
 
@@ -59,6 +61,7 @@ export default function CreateInvoice() {
 
       const invoiceDraftData = {
         user_id: user.id,
+        company_id: activeCompany.id,
         client_id: client.id,
         total_ht: totals.ht,
         total_vat: totals.tva,
@@ -82,7 +85,7 @@ export default function CreateInvoice() {
       draftId = draft.id;
 
       const pdfDataProps = {
-        company: companyData,
+        company: activeCompany,
         total_ht: totals.ht,
         total_vat: totals.tva,
         total_ttc: totals.ttc,
