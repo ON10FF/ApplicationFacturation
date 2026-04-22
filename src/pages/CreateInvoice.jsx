@@ -10,8 +10,9 @@ export default function CreateInvoice() {
   const [clients, setClients] = useState([]);
   const [selectedClient, setSelectedClient] = useState('');
   const [lines, setLines] = useState([{ product_name: '', quantity: 1, price_ttc: 0 }]);
-  const[isPaid, setIsPaid] = useState(false);
+  const [isPaid, setIsPaid] = useState(false);
   const [signature, setSignature] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -32,62 +33,80 @@ export default function CreateInvoice() {
   };
 
   const handleIssue = async () => {
+    // Garde anti-double-clic : on bloque dès le premier appel
+    if (isSubmitting) return;
     if (!selectedClient) return alert('Veuillez sélectionner un client.');
-    const totals = calculateTotals();
-    const client = clients.find(c => c.id === selectedClient);
 
-    const { data: companyData } = await supabase.from('companies').select('*').eq('user_id', user.id).single();
-    if (!companyData) {
-      return alert('Veuillez configurer votre entreprise dans les paramètres avant de générer une facture.');
+    setIsSubmitting(true);
+    let draftId = null;
+
+    try {
+      const totals = calculateTotals();
+      const client = clients.find(c => c.id === selectedClient);
+
+      const { data: companyData } = await supabase.from('companies').select('*').eq('user_id', user.id).single();
+      if (!companyData) {
+        alert('Veuillez configurer votre entreprise dans les paramètres avant de générer une facture.');
+        return;
+      }
+
+      const formattedLines = lines.map(l => ({
+        ...l,
+        price_ht: l.price_ttc,   // alias pour compatibilité avec InvoicePDF
+        total_ht: l.quantity * l.price_ttc,
+        total_ttc: l.quantity * l.price_ttc,
+      }));
+
+      const invoiceDraftData = {
+        user_id: user.id,
+        client_id: client.id,
+        total_ht: totals.ht,
+        total_vat: totals.tva,
+        total_ttc: totals.ttc,
+        is_paid: isPaid,
+        status: 'draft',
+      };
+
+      const { data: draft, error: draftError } = await supabase
+        .from('invoices')
+        .insert(invoiceDraftData)
+        .select('id')
+        .single();
+
+      if (draftError) {
+        console.error('Erreur Supabase (Création brouillon):', draftError);
+        alert("Erreur lors de la création du brouillon : " + draftError.message);
+        return;
+      }
+
+      draftId = draft.id;
+
+      const pdfDataProps = {
+        company: companyData,
+        total_ht: totals.ht,
+        total_vat: totals.tva,
+        total_ttc: totals.ttc,
+        is_paid: isPaid,
+        paid_amount: isPaid ? totals.ttc : 0,
+        paid_date: isPaid ? new Date().toISOString() : null,
+        payment_method: 'Espèces',
+        signature_data_url: signature,
+      };
+
+      const result = await issueInvoice(draftId, pdfDataProps, client, formattedLines);
+      if (!result.success) {
+        // Supprimer le brouillon orphelin pour éviter les doublons futurs
+        await supabase.from('invoices').delete().eq('id', draftId);
+        alert("Erreur lors de l'émission : " + (result.error?.message || 'Erreur inconnue'));
+        return;
+      }
+
+      alert(`Facture émise avec succès !\nTotal TTC : ${totals.ttc} FCFA\nNuméro : ${result.invoiceNumber}`);
+      navigate('/invoices');
+    } finally {
+      // Toujours débloquer le bouton à la fin (succès ou erreur)
+      setIsSubmitting(false);
     }
-
-    const formattedLines = lines.map(l => ({
-      ...l,
-      price_ht: l.price_ttc,   // alias pour compatibilité avec InvoicePDF
-      total_ht: l.quantity * l.price_ttc,
-      total_ttc: l.quantity * l.price_ttc  // TTC = HT car la taxe est incluse
-    }));
-
-    const invoiceDraftData = {
-      user_id: user.id,
-      client_id: client.id,
-      total_ht: totals.ht,
-      total_vat: totals.tva,
-      total_ttc: totals.ttc,
-      is_paid: isPaid,
-      status: 'draft',
-    };
-
-    const { data: draft, error: draftError } = await supabase
-      .from('invoices')
-      .insert(invoiceDraftData)
-      .select('id')
-      .single();
-
-    if (draftError) {
-      console.error('Erreur Supabase (Création brouillon):', draftError);
-      return alert("Erreur lors de la création du brouillon : " + draftError.message);
-    }
-
-    const pdfDataProps = {
-      company: companyData,
-      total_ht: totals.ht,
-      total_vat: totals.tva,
-      total_ttc: totals.ttc,
-      is_paid: isPaid,
-      paid_amount: isPaid ? totals.ttc : 0,
-      paid_date: isPaid ? new Date().toISOString() : null,
-      payment_method: 'Espèces',
-      signature_data_url: signature,
-    };
-
-    const result = await issueInvoice(draft.id, pdfDataProps, client, formattedLines);
-    if (!result.success) {
-      return alert("Erreur lors de l'émission : " + result.error.message);
-    }
-    
-    alert("Facture prête à être émise avec un total TTC de : " + totals.ttc + " FCFA. Numéro : " + result.invoiceNumber);
-    navigate('/invoices');
   };
 
   return (
@@ -132,8 +151,16 @@ export default function CreateInvoice() {
         <SignaturePad onSave={setSignature} />
       </div>
 
-      <button onClick={handleIssue} className="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg font-bold text-lg">
-        Générer et Émettre la Facture
+      <button
+        onClick={handleIssue}
+        disabled={isSubmitting}
+        className={`w-full py-3 rounded-lg font-bold text-lg text-white transition ${
+          isSubmitting
+            ? 'bg-gray-400 cursor-not-allowed'
+            : 'bg-green-600 hover:bg-green-700'
+        }`}
+      >
+        {isSubmitting ? '⏳ Génération en cours...' : 'Générer et Émettre la Facture'}
       </button>
     </div>
   );

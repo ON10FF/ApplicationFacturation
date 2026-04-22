@@ -82,52 +82,74 @@ export default function Invoices() {
   );
 }
 export const issueInvoice = async (invoiceDraftId, companyData, clientData, lines) => {
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
+  const MAX_RETRIES = 3;
 
-    // 1. Obtenir le numéro de facture sans trou via RPC
-    const { data: invoiceNumber, error: rpcError } = await supabase
-      .rpc('get_next_document_number', { p_user_id: user.id, p_doc_type: 'invoice' });
-    
-    if (rpcError) throw rpcError;
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
 
-    // 2. Préparer les données finales
-    const issueDate = new Date().toISOString();
-    const invoiceData = { ...companyData, client: clientData, lines, number: invoiceNumber, issueDate };
+      // 1. Obtenir le prochain numéro de facture via RPC (nouveau numéro à chaque tentative)
+      const { data: invoiceNumber, error: rpcError } = await supabase
+        .rpc('get_next_document_number', { p_user_id: user.id, p_doc_type: 'invoice' });
 
-    // 3. Générer le PDF côté client (Coût serveur = 0)
-    const pdfBlob = await pdf(<InvoiceTemplate data={invoiceData} />).toBlob();
-    
-    // 4. Calculer le hash SHA-256 (preuve d'intégrité)
-    const hash = await calculateHash(pdfBlob);
+      if (rpcError) throw rpcError;
 
-    // 5. Uploader sur Supabase Storage
-    const fileName = `${user.id}/${invoiceNumber}.pdf`;
-    const { error: uploadError } = await supabase.storage
-      .from('factures')
-      .upload(fileName, pdfBlob, { contentType: 'application/pdf' });
+      // 2. Préparer les données finales
+      const issueDate = new Date().toISOString();
+      const invoiceData = { ...companyData, client: clientData, lines, number: invoiceNumber, issueDate };
 
-    if (uploadError) throw uploadError;
+      // 3. Générer le PDF côté client
+      const pdfBlob = await pdf(<InvoiceTemplate data={invoiceData} />).toBlob();
 
-    const pdfUrl = supabase.storage.from('factures').getPublicUrl(fileName).data.publicUrl;
+      // 4. Calculer le hash SHA-256 (preuve d'intégrité)
+      const hash = await calculateHash(pdfBlob);
 
-    // 6. Mettre à jour la base de données (Figer la facture)
-    const { error: updateError } = await supabase
-      .from('invoices')
-      .update({
-        status: 'issued',
-        number: invoiceNumber,
-        issue_date: issueDate,
-        pdf_url: pdfUrl,
-        pdf_hash: hash
-      })
-      .eq('id', invoiceDraftId);
+      // 5. Uploader sur Supabase Storage
+      const fileName = `${user.id}/${invoiceNumber}.pdf`;
+      const { error: uploadError } = await supabase.storage
+        .from('factures')
+        .upload(fileName, pdfBlob, { contentType: 'application/pdf', upsert: true });
 
-    if (updateError) throw updateError;
+      if (uploadError) throw uploadError;
 
-    return { success: true, invoiceNumber };
-  } catch (error) {
-    console.error("Erreur lors de l'émission :", error);
-    return { success: false, error };
+      const pdfUrl = supabase.storage.from('factures').getPublicUrl(fileName).data.publicUrl;
+
+      // 6. Mettre à jour la base de données (Figer la facture)
+      const { error: updateError } = await supabase
+        .from('invoices')
+        .update({
+          status: 'issued',
+          number: invoiceNumber,
+          issue_date: issueDate,
+          pdf_url: pdfUrl,
+          pdf_hash: hash,
+        })
+        .eq('id', invoiceDraftId);
+
+      if (updateError) {
+        // Conflit de numéro (duplicate key) → on réessaie avec un nouveau numéro
+        const isDuplicateKey = updateError.code === '23505' || updateError.message?.includes('duplicate key');
+        if (isDuplicateKey && attempt < MAX_RETRIES) {
+          console.warn(`Conflit de numéro détecté (tentative ${attempt}/${MAX_RETRIES}), nouvel essai...`);
+          await new Promise(r => setTimeout(r, 300 * attempt)); // attente progressive
+          continue;
+        }
+        throw updateError;
+      }
+
+      return { success: true, invoiceNumber };
+
+    } catch (error) {
+      const isDuplicateKey = error?.code === '23505' || error?.message?.includes('duplicate key');
+      if (isDuplicateKey && attempt < MAX_RETRIES) {
+        console.warn(`Conflit de numéro (tentative ${attempt}/${MAX_RETRIES}), nouvel essai...`);
+        await new Promise(r => setTimeout(r, 300 * attempt));
+        continue;
+      }
+      console.error("Erreur lors de l'émission :", error);
+      return { success: false, error };
+    }
   }
+
+  return { success: false, error: { message: `Impossible d'émettre la facture après ${MAX_RETRIES} tentatives (conflit de numéro persistant).` } };
 }
