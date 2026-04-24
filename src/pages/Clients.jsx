@@ -34,25 +34,49 @@ export default function Clients() {
   };
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold mb-4">Mes Clients</h1>
-      <form onSubmit={addClient} className="flex space-x-2 mb-6 bg-white p-4 shadow rounded">
-        <input type="text" placeholder="Nom du client" required className="border p-2 rounded flex-1" value={name} onChange={e => setName(e.target.value)} />
-        <input type="text" placeholder="Adresse" className="border p-2 rounded flex-1" value={address} onChange={e => setAddress(e.target.value)} />
-        <button className="bg-green-600 text-white px-4 rounded">Ajouter</button>
+    <div className="max-w-4xl">
+      <h1 className="text-2xl font-bold mb-6 text-gray-800">Mes Clients</h1>
+      
+      <form onSubmit={addClient} className="flex flex-col sm:flex-row gap-3 mb-8 bg-white p-4 md:p-6 shadow rounded-xl border border-gray-100">
+        <div className="flex-1">
+          <input type="text" placeholder="Nom du client" required className="w-full border border-gray-300 p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition" 
+            value={name} onChange={e => setName(e.target.value)} />
+        </div>
+        <div className="flex-1">
+          <input type="text" placeholder="Adresse" className="w-full border border-gray-300 p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition" 
+            value={address} onChange={e => setAddress(e.target.value)} />
+        </div>
+        <button className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg font-medium transition shadow-lg shadow-blue-100">
+          Ajouter
+        </button>
       </form>
 
-      <div className="bg-white rounded shadow overflow-hidden">
-        <table className="w-full text-left">
-          <thead className="bg-gray-100">
-            <tr><th className="p-3">Nom</th><th className="p-3">Adresse</th></tr>
-          </thead>
-          <tbody>
-            {clients.map(c => (
-              <tr key={c.id} className="border-t"><td className="p-3">{c.name}</td><td className="p-3">{c.address}</td></tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="bg-white rounded-xl shadow border border-gray-100 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left">
+            <thead className="bg-gray-50 border-b border-gray-100">
+              <tr>
+                <th className="p-4 text-xs font-bold uppercase tracking-wider text-gray-500">Nom</th>
+                <th className="p-4 text-xs font-bold uppercase tracking-wider text-gray-500">Adresse</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {clients.map(c => (
+                <tr key={c.id} className="hover:bg-gray-50 transition-colors">
+                  <td className="p-4 text-sm font-medium text-gray-800">{c.name}</td>
+                  <td className="p-4 text-sm text-gray-600">{c.address || '-'}</td>
+                </tr>
+              ))}
+              {clients.length === 0 && (
+                <tr>
+                  <td colSpan="2" className="p-12 text-center text-gray-400">
+                    Aucun client enregistré.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

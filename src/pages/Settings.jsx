@@ -30,7 +30,7 @@ export default function Settings() {
             </p>
 
             {activeCompany ? (
-              <div className="bg-white p-4 rounded-xl border border-gray-200 mb-4 flex items-center justify-between">
+              <div className="bg-white p-4 rounded-xl border border-gray-200 mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
                   {activeCompany.logo_url ? (
                     <img src={activeCompany.logo_url} alt="Logo" className="w-10 h-10 object-contain border rounded p-1" />
@@ -39,12 +39,13 @@ export default function Settings() {
                       {activeCompany.name.charAt(0)}
                     </div>
                   )}
-                  <div>
-                    <p className="text-sm font-bold text-gray-800">{activeCompany.name}</p>
+                  <div className="overflow-hidden">
+                    <p className="text-sm font-bold text-gray-800 truncate">{activeCompany.name}</p>
                     <p className="text-xs text-gray-500">Entreprise actuellement active</p>
                   </div>
                 </div>
-                <Link to="/companies" className="text-blue-600 hover:text-blue-700 p-2">
+                <Link to="/companies" className="flex items-center justify-center text-blue-600 hover:text-blue-700 bg-blue-50 sm:bg-transparent p-2 rounded-lg transition-colors">
+                  <span className="sm:hidden text-sm font-medium mr-1">Gérer</span>
                   <ArrowRight className="w-5 h-5" />
                 </Link>
               </div>

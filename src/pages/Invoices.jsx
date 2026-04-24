@@ -90,82 +90,89 @@ export default function Invoices() {
   if (loading) return <div className="p-6 text-center">Chargement des factures...</div>;
 
   return (
-    <div className="bg-white p-6 shadow rounded">
-      <div className="flex justify-between items-center mb-6">
+    <div className="bg-white p-4 md:p-6 shadow rounded-xl">
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-6 gap-4">
         <div>
-          <h2 className="text-2xl font-bold">Factures : {activeCompany.name}</h2>
+          <h2 className="text-xl md:text-2xl font-bold text-gray-800">Factures : {activeCompany.name}</h2>
           <p className="text-sm text-gray-500">{invoices.length} facture(s) trouvée(s)</p>
         </div>
-        <div className="flex space-x-3">
+        <div className="flex flex-wrap items-center gap-2">
           {selectedIds.length > 0 && (
-            <button onClick={handleDeleteSelected} className="bg-red-50 text-red-600 px-4 py-2 rounded border border-red-200 hover:bg-red-100 transition flex items-center">
-              <Trash2 className="w-4 h-4 mr-2" /> Supprimer ({selectedIds.length})
+            <button onClick={handleDeleteSelected} className="bg-red-50 text-red-600 px-3 py-2 text-sm rounded-lg border border-red-200 hover:bg-red-100 transition flex items-center">
+              <Trash2 className="w-4 h-4 mr-1.5" /> Supprimer ({selectedIds.length})
             </button>
           )}
-          <Link to="/invoices/create" className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition">
+          <Link to="/invoices/create" className="flex-1 md:flex-none text-center bg-blue-600 text-white px-4 py-2 text-sm rounded-lg hover:bg-blue-700 transition font-medium">
             + Nouvelle facture
           </Link>
         </div>
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="bg-gray-50 text-gray-700">
-              <th className="p-3 border-b w-10">
-                <input type="checkbox" checked={selectedIds.length === invoices.length && invoices.length > 0} onChange={toggleSelectAll} className="rounded" />
-              </th>
-              <th className="p-3 border-b">N° Facture</th>
-              <th className="p-3 border-b">Client</th>
-              <th className="p-3 border-b">Date</th>
-              <th className="p-3 border-b">Montant (TTC)</th>
-              <th className="p-3 border-b">Statut</th>
-              <th className="p-3 border-b text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {invoices.map((inv) => (
-              <tr key={inv.id} className={`hover:bg-gray-50 border-b ${selectedIds.includes(inv.id) ? 'bg-blue-50/30' : ''}`}>
-                <td className="p-3">
-                  <input type="checkbox" checked={selectedIds.includes(inv.id)} onChange={() => toggleSelect(inv.id)} className="rounded" />
-                </td>
-                <td className="p-3 font-medium text-gray-800">{inv.number || 'Brouillon'}</td>
-                <td className="p-3">{inv.clients?.name || 'Inconnu'}</td>
-                <td className="p-3">{new Date(inv.created_at).toLocaleDateString()}</td>
-                <td className="p-3">{inv.total_ttc} FCFA</td>
-                <td className="p-3">
-                  {inv.status === 'issued' ? (
-                    <span className="inline-flex items-center text-xs font-medium text-green-700 bg-green-100 px-2.5 py-0.5 rounded-full">
-                      <CheckCircle className="w-3 h-3 mr-1"/> Émise
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center text-xs font-medium text-amber-700 bg-amber-100 px-2.5 py-0.5 rounded-full">
-                      <Clock className="w-3 h-3 mr-1"/> Brouillon
-                    </span>
-                  )}
-                </td>
-                <td className="p-3 flex justify-end space-x-2">
-                  {inv.pdf_url && (
-                    <a href={inv.pdf_url} target="_blank" rel="noopener noreferrer" className="p-2 text-blue-500 hover:bg-blue-50 rounded transition" title="Télécharger">
-                      <Download className="w-5 h-5" />
-                    </a>
-                  )}
-                  <button onClick={() => handleDelete(inv.id)} className="p-2 text-red-500 hover:bg-red-50 rounded transition" title="Supprimer">
-                    <Trash2 className="w-5 h-5" />
-                  </button>
-                </td>
+      <div className="overflow-x-auto -mx-4 md:mx-0">
+        <div className="inline-block min-w-full align-middle">
+          <table className="min-w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-gray-50 text-gray-700">
+                <th className="p-3 border-b w-10">
+                  <input type="checkbox" checked={selectedIds.length === invoices.length && invoices.length > 0} onChange={toggleSelectAll} className="rounded" />
+                </th>
+                <th className="p-3 border-b text-xs font-semibold uppercase tracking-wider">N° Facture</th>
+                <th className="p-3 border-b text-xs font-semibold uppercase tracking-wider">Client</th>
+                <th className="p-3 border-b text-xs font-semibold uppercase tracking-wider hidden sm:table-cell">Date</th>
+                <th className="p-3 border-b text-xs font-semibold uppercase tracking-wider">Montant</th>
+                <th className="p-3 border-b text-xs font-semibold uppercase tracking-wider">Statut</th>
+                <th className="p-3 border-b text-xs font-semibold uppercase tracking-wider text-right">Actions</th>
               </tr>
-            ))}
-            {invoices.length === 0 && (
-              <tr>
-                <td colSpan="7" className="p-12 text-center text-gray-500">
-                  <p>Aucune facture trouvée pour cette entreprise.</p>
-                  <Link to="/invoices/create" className="text-blue-600 hover:underline mt-2 inline-block">Créer votre première facture</Link>
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {invoices.map((inv) => (
+                <tr key={inv.id} className={`hover:bg-gray-50 transition-colors ${selectedIds.includes(inv.id) ? 'bg-blue-50/30' : ''}`}>
+                  <td className="p-3">
+                    <input type="checkbox" checked={selectedIds.includes(inv.id)} onChange={() => toggleSelect(inv.id)} className="rounded" />
+                  </td>
+                  <td className="p-3">
+                    <div className="font-medium text-gray-900">{inv.number || 'Brouillon'}</div>
+                    <div className="text-xs text-gray-500 sm:hidden">{new Date(inv.created_at).toLocaleDateString()}</div>
+                  </td>
+                  <td className="p-3 text-sm text-gray-600">{inv.clients?.name || 'Inconnu'}</td>
+                  <td className="p-3 text-sm text-gray-600 hidden sm:table-cell">{new Date(inv.created_at).toLocaleDateString()}</td>
+                  <td className="p-3 text-sm font-semibold text-gray-900">{inv.total_ttc.toLocaleString()} <span className="text-[10px] text-gray-500 font-normal">FCFA</span></td>
+                  <td className="p-3">
+                    {inv.status === 'issued' ? (
+                      <span className="inline-flex items-center text-[10px] font-bold uppercase tracking-wider text-green-700 bg-green-100 px-2 py-0.5 rounded-full">
+                        Émise
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center text-[10px] font-bold uppercase tracking-wider text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">
+                        Brouillon
+                      </span>
+                    )}
+                  </td>
+                  <td className="p-3 text-right">
+                    <div className="flex justify-end gap-1">
+                      {inv.pdf_url && (
+                        <a href={inv.pdf_url} target="_blank" rel="noopener noreferrer" className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition" title="Télécharger">
+                          <Download className="w-4 h-4" />
+                        </a>
+                      )}
+                      <button onClick={() => handleDelete(inv.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition" title="Supprimer">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {invoices.length === 0 && (
+                <tr>
+                  <td colSpan="7" className="p-12 text-center text-gray-500">
+                    <p className="text-lg font-medium text-gray-400">Aucune facture trouvée</p>
+                    <Link to="/invoices/create" className="text-blue-600 hover:underline mt-2 inline-block">Créer votre première facture</Link>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

@@ -113,54 +113,82 @@ export default function CreateInvoice() {
   };
 
   return (
-    <div className="max-w-4xl bg-white p-6 shadow rounded">
-      <h2 className="text-2xl font-bold mb-6">Créer une facture</h2>
+    <div className="max-w-4xl mx-auto bg-white p-4 md:p-6 shadow rounded-xl">
+      <h2 className="text-xl md:text-2xl font-bold mb-6 text-gray-800">Créer une facture</h2>
       
       <div className="mb-6">
-        <label className="block text-sm font-medium mb-1">Client</label>
-        <select className="w-full border p-2 rounded" value={selectedClient} onChange={e => setSelectedClient(e.target.value)}>
+        <label className="block text-sm font-medium mb-1.5 text-gray-700">Client</label>
+        <select className="w-full border border-gray-300 p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition" 
+          value={selectedClient} onChange={e => setSelectedClient(e.target.value)}>
           <option value="">Sélectionner un client...</option>
           {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
       </div>
 
       <div className="mb-6">
-        <h3 className="font-semibold mb-2">Lignes de facture</h3>
-        {lines.map((line, index) => (
-          <div key={index} className="flex space-x-2 mb-2">
-            <input type="text" placeholder="Désignation" className="border p-2 flex-1 rounded"
-              value={line.product_name} onChange={e => handleLineChange(index, 'product_name', e.target.value)} />
-            <input type="number" placeholder="Qté" className="border p-2 w-20 rounded"
-              value={line.quantity} onChange={e => handleLineChange(index, 'quantity', Number(e.target.value))} />
-            <input type="number" placeholder="PU TTC (FCFA)" className="border p-2 w-32 rounded"
-              value={line.price_ttc} onChange={e => handleLineChange(index, 'price_ttc', Number(e.target.value))} />
-          </div>
-        ))}
-        <button onClick={() => setLines([...lines, { product_name: '', quantity: 1, price_ttc: 0 }])} className="text-blue-500 text-sm mt-2">+ Ajouter une ligne</button>
+        <h3 className="font-semibold mb-3 text-gray-800 flex items-center justify-between">
+          Lignes de facture
+          <span className="text-xs font-normal text-gray-500 hidden sm:inline">Prix unitaires TTC</span>
+        </h3>
+        <div className="space-y-4 sm:space-y-2">
+          {lines.map((line, index) => (
+            <div key={index} className="flex flex-col sm:flex-row gap-3 sm:gap-2 p-3 sm:p-0 bg-gray-50 sm:bg-transparent rounded-lg border sm:border-0 border-gray-100">
+              <div className="flex-1">
+                <label className="block text-[10px] uppercase font-bold text-gray-400 mb-1 sm:hidden">Désignation</label>
+                <input type="text" placeholder="Désignation" className="w-full border border-gray-300 p-2 rounded-lg text-sm"
+                  value={line.product_name} onChange={e => handleLineChange(index, 'product_name', e.target.value)} />
+              </div>
+              <div className="flex gap-2">
+                <div className="w-1/3 sm:w-20">
+                  <label className="block text-[10px] uppercase font-bold text-gray-400 mb-1 sm:hidden">Qté</label>
+                  <input type="number" placeholder="Qté" className="w-full border border-gray-300 p-2 rounded-lg text-sm text-center"
+                    value={line.quantity} onChange={e => handleLineChange(index, 'quantity', Number(e.target.value))} />
+                </div>
+                <div className="flex-1 sm:w-32">
+                  <label className="block text-[10px] uppercase font-bold text-gray-400 mb-1 sm:hidden">PU TTC (FCFA)</label>
+                  <input type="number" placeholder="PU TTC" className="w-full border border-gray-300 p-2 rounded-lg text-sm text-right"
+                    value={line.price_ttc} onChange={e => handleLineChange(index, 'price_ttc', Number(e.target.value))} />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <button 
+          onClick={() => setLines([...lines, { product_name: '', quantity: 1, price_ttc: 0 }])} 
+          className="w-full sm:w-auto text-blue-600 text-sm mt-4 font-medium flex items-center justify-center hover:bg-blue-50 px-4 py-2 rounded-lg transition"
+        >
+          + Ajouter une ligne
+        </button>
       </div>
 
-      <div className="bg-gray-50 p-4 rounded mb-6 text-right">
-        <p className="text-sm text-gray-500 italic">Prix unitaire = TTC (taxe déjà incluse)</p>
-        <p className="text-xl font-bold text-blue-700">Total TTC : {calculateTotals().ttc} FCFA</p>
+      <div className="bg-blue-50 p-4 rounded-xl mb-6 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+        <p className="text-xs text-blue-600 italic">Prix unitaire = TTC (taxe déjà incluse)</p>
+        <p className="text-xl font-bold text-blue-700">Total TTC : {calculateTotals().ttc.toLocaleString()} FCFA</p>
       </div>
 
-      <div className="grid grid-cols-2 gap-6 mb-6">
-        <div>
-          <label className="flex items-center space-x-2 cursor-pointer mb-2">
-            <input type="checkbox" checked={isPaid} onChange={e => setIsPaid(e.target.checked)} className="w-5 h-5 text-green-600 rounded" />
-            <span className="font-medium">Marquer comme payé au comptant</span>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 flex items-center">
+          <label className="flex items-center space-x-3 cursor-pointer group">
+            <input type="checkbox" checked={isPaid} onChange={e => setIsPaid(e.target.checked)} className="w-6 h-6 text-green-600 rounded-md border-gray-300 focus:ring-green-500" />
+            <div>
+              <span className="font-bold text-gray-800 block">Payé au comptant</span>
+              <span className="text-xs text-gray-500">Marquer la facture comme déjà réglée</span>
+            </div>
           </label>
         </div>
-        <SignaturePad onSave={setSignature} />
+        <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
+          <label className="block text-sm font-medium mb-2 text-gray-700">Signature</label>
+          <SignaturePad onSave={setSignature} />
+        </div>
       </div>
 
       <button
         onClick={handleIssue}
         disabled={isSubmitting}
-        className={`w-full py-3 rounded-lg font-bold text-lg text-white transition ${
+        className={`w-full py-4 rounded-xl font-bold text-lg text-white shadow-lg transition-all transform active:scale-[0.98] ${
           isSubmitting
             ? 'bg-gray-400 cursor-not-allowed'
-            : 'bg-green-600 hover:bg-green-700'
+            : 'bg-green-600 hover:bg-green-700 shadow-green-100 hover:shadow-green-200'
         }`}
       >
         {isSubmitting ? '⏳ Génération en cours...' : 'Générer et Émettre la Facture'}

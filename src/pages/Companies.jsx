@@ -182,71 +182,71 @@ export default function Companies() {
               </button>
             </div>
 
-            <form onSubmit={handleSave} className="p-6 grid grid-cols-2 gap-4">
-              <div className="col-span-2">
-                <label className="block text-sm font-medium mb-1">Raison Sociale *</label>
-                <input type="text" required className="w-full p-2 border rounded-lg"
+            <form onSubmit={handleSave} className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium mb-1.5 text-gray-700">Raison Sociale *</label>
+                <input type="text" required className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                   value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">NINEA</label>
-                <input type="text" className="w-full p-2 border rounded-lg"
+                <label className="block text-sm font-medium mb-1.5 text-gray-700">NINEA</label>
+                <input type="text" className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                   value={form.ninea} onChange={e => setForm(f => ({ ...f, ninea: e.target.value }))} />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">RCCM</label>
-                <input type="text" className="w-full p-2 border rounded-lg"
+                <label className="block text-sm font-medium mb-1.5 text-gray-700">RCCM</label>
+                <input type="text" className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                   value={form.rccm} onChange={e => setForm(f => ({ ...f, rccm: e.target.value }))} />
               </div>
-              <div className="col-span-2">
-                <label className="block text-sm font-medium mb-1">Adresse</label>
-                <input type="text" className="w-full p-2 border rounded-lg"
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium mb-1.5 text-gray-700">Adresse</label>
+                <input type="text" className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                   value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Téléphone</label>
-                <input type="text" className="w-full p-2 border rounded-lg"
+                <label className="block text-sm font-medium mb-1.5 text-gray-700">Téléphone</label>
+                <input type="text" className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                   value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Email</label>
-                <input type="email" className="w-full p-2 border rounded-lg"
+                <label className="block text-sm font-medium mb-1.5 text-gray-700">Email</label>
+                <input type="email" className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                   value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} />
               </div>
 
               {/* Upload Logo */}
-              <div className="col-span-2">
-                <label className="block text-sm font-medium mb-1">Logo de l'entreprise</label>
-                <div className="flex items-center gap-3">
-                  <label className="flex items-center gap-2 cursor-pointer border border-dashed border-gray-300 rounded-lg px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 transition">
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium mb-1.5 text-gray-700">Logo de l'entreprise</label>
+                <div className="flex flex-wrap items-center gap-3 p-3 border rounded-lg bg-gray-50">
+                  <label className="flex items-center gap-2 cursor-pointer bg-white border border-gray-300 rounded-lg px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 transition">
                     <Upload className="w-4 h-4" />
                     {uploading === 'logo_url' ? 'Envoi...' : 'Choisir un fichier'}
                     <input type="file" accept="image/*" className="hidden" onChange={e => handleImageUpload(e, 'logo_url')} />
                   </label>
-                  {form.logo_url && <img src={form.logo_url} alt="Logo" className="h-12 w-12 object-contain border rounded p-1" />}
+                  {form.logo_url && <img src={form.logo_url} alt="Logo" className="h-12 w-12 object-contain border bg-white rounded p-1" />}
                 </div>
               </div>
 
               {/* Upload Cachet */}
-              <div className="col-span-2">
-                <label className="block text-sm font-medium mb-1">Cachet de l'entreprise</label>
-                <div className="flex items-center gap-3">
-                  <label className="flex items-center gap-2 cursor-pointer border border-dashed border-gray-300 rounded-lg px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 transition">
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium mb-1.5 text-gray-700">Cachet de l'entreprise</label>
+                <div className="flex flex-wrap items-center gap-3 p-3 border rounded-lg bg-gray-50">
+                  <label className="flex items-center gap-2 cursor-pointer bg-white border border-gray-300 rounded-lg px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 transition">
                     <Upload className="w-4 h-4" />
                     {uploading === 'stamp_image_url' ? 'Envoi...' : 'Choisir un fichier'}
                     <input type="file" accept="image/*" className="hidden" onChange={e => handleImageUpload(e, 'stamp_image_url')} />
                   </label>
-                  {form.stamp_image_url && <img src={form.stamp_image_url} alt="Cachet" className="h-12 object-contain border rounded p-1" />}
+                  {form.stamp_image_url && <img src={form.stamp_image_url} alt="Cachet" className="h-12 object-contain border bg-white rounded p-1" />}
                 </div>
               </div>
 
-              <div className="col-span-2 flex gap-3 pt-2">
+              <div className="md:col-span-2 flex flex-col sm:flex-row gap-3 pt-4">
                 <button type="button" onClick={closeForm}
-                  className="flex-1 border border-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-50 transition font-medium">
+                  className="order-2 sm:order-1 flex-1 border border-gray-300 text-gray-700 py-3 rounded-lg hover:bg-gray-50 transition font-medium">
                   Annuler
                 </button>
                 <button type="submit" disabled={saving}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg transition font-medium disabled:opacity-50">
+                  className="order-1 sm:order-2 flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg transition font-bold disabled:opacity-50 shadow-lg shadow-blue-100">
                   {saving ? 'Enregistrement...' : (editingId ? 'Mettre à jour' : 'Créer l\'entreprise')}
                 </button>
               </div>
